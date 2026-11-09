@@ -15,17 +15,37 @@
     <artifactId>order-service</artifactId>
     <version>1.0.0</version>
     <name>order-service</name>
-    <description>Service goi product-service thong qua Resilience4j CircuitBreaker</description>
+    <description>Service goi product-service qua OpenFeign, duoc bao ve boi Resilience4j CircuitBreaker</description>
 
     <properties>
         <java.version>17</java.version>
         <resilience4j.version>2.2.0</resilience4j.version>
+        <!-- Spring Cloud 2023.0.x tuong thich voi Spring Boot 3.2 / 3.3 -->
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Goi product-service qua HTTP bang interface khai bao -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
 
         <!-- Thu vien circuit breaker -->

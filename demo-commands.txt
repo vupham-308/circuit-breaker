@@ -11,7 +11,7 @@ curl http://localhost:8080/actuator/circuitbreakerevents
 === DEMO CHINH (Nguoi 5) ===
 1. Ca 2 service dang chay:      curl http://localhost:8080/orders/1      -> du lieu that, CLOSED
 2. Tat product-service (Ctrl+C), goi lai 5 lan:
-                                curl http://localhost:8080/orders/1      -> fallback (ResourceAccessException)
+                                curl http://localhost:8080/orders/1      -> fallback (RetryableException)
 3. Goi tiep:                    curl http://localhost:8080/orders/1      -> fallback (CallNotPermittedException), OPEN
 4. Bat lai product-service, cho hon 10 giay, goi 2 lan:
                                 curl http://localhost:8080/orders/1      -> HALF_OPEN -> CLOSED
