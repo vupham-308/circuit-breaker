@@ -1,0 +1,22 @@
+=== LENH DEMO (Windows PowerShell: dung curl.exe thay cho curl) ===
+
+--- Kiem tra 2 service ---
+curl http://localhost:8081/products/1
+curl http://localhost:8080/orders/1
+
+--- Theo doi trang thai mach (mo san o tab khac) ---
+curl http://localhost:8080/actuator/circuitbreakers
+curl http://localhost:8080/actuator/circuitbreakerevents
+
+=== DEMO CHINH (Nguoi 5) ===
+1. Ca 2 service dang chay:      curl http://localhost:8080/orders/1      -> du lieu that, CLOSED
+2. Tat product-service (Ctrl+C), goi lai 5 lan:
+                                curl http://localhost:8080/orders/1      -> fallback (ResourceAccessException)
+3. Goi tiep:                    curl http://localhost:8080/orders/1      -> fallback (CallNotPermittedException), OPEN
+4. Bat lai product-service, cho hon 10 giay, goi 2 lan:
+                                curl http://localhost:8080/orders/1      -> HALF_OPEN -> CLOSED
+
+=== DEMO 2 LOI (Nguoi 6) - tat product-service truoc ===
+curl http://localhost:8080/orders/1                 -> fallback (dung)
+curl http://localhost:8080/orders/1/noi-bo          -> loi 500, actuator khong dem them
+curl http://localhost:8080/orders/1/fallback-sai    -> loi 500, xem canh bao trong log order-service
