@@ -1,0 +1,15 @@
+services:
+  product-service:
+    build: ./product-service
+    ports:
+      - "8081:8081"
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "8080:8080"
+    environment:
+      # Trong container, localhost là chính container đó, nên phải gọi theo tên service
+      PRODUCT_BASE_URL: http://product-service:8081
+    depends_on:
+      - product-service

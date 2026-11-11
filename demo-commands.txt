@@ -1,22 +1,62 @@
-=== LENH DEMO (Windows PowerShell: dung curl.exe thay cho curl) ===
+=== LENH DEMO - CHAY BANG DOCKER TRONG UBUNTU WSL2 ===
+(Tat ca lenh go trong terminal Ubuntu. Lenh docker deu co sudo.)
 
---- Kiem tra 2 service ---
-curl http://localhost:8081/products/1
-curl http://localhost:8080/orders/1
+--- A. CHUAN BI (lam 1 lan, truoc gio demo) ---
+Cai Docker:        curl -fsSL https://get.docker.com | sudo sh
+Cai Java + Maven:  sudo apt update && sudo apt install -y openjdk-17-jdk maven
 
---- Theo doi trang thai mach (mo san o tab khac) ---
-curl http://localhost:8080/actuator/circuitbreakers
-curl http://localhost:8080/actuator/circuitbreakerevents
+--- B. TRUOC KHI DEMO ---
+1. Bat Docker neu chua chay:
+     sudo service docker status       -> "Docker is running" la OK
+     sudo service docker start        -> chi can khi chua chay
+     sudo docker ps                   -> in ra bang (du rong), khong bao loi la OK
+2. Vao thu muc project:
+     cd /mnt/c/Users/NHAT/Desktop/proj_mss/circuit-breaker
+3. Build jar (chi can lai khi sua code):
+     mvn clean package -DskipTests
+4. Khoi dong 2 container:
+     sudo docker compose up --build -d
+5. Kiem tra ca 2 container dang "running":
+     sudo docker compose ps
+6. Kiem tra 2 service tra loi:
+     curl http://localhost:8081/products/1
+     curl http://localhost:8080/orders/1
+
+--- C. THEO DOI TRANG THAI MACH (mo san 2 tab Ubuntu rieng, Ctrl+C de thoat watch) ---
+Tab 1 - trang thai mach (CLOSED / OPEN / HALF_OPEN):
+  watch -n 1 curl -s http://localhost:8080/actuator/circuitbreakers
+Tab 2 - su kien (goi thanh cong, loi, doi trang thai):
+  watch -n 1 curl -s http://localhost:8080/actuator/circuitbreakerevents
+Tab 3 - chay cac lenh demo ben duoi.
+Muon de doc hon: watch -n 1 "curl -s http://localhost:8080/actuator/circuitbreakers | python3 -m json.tool"
+(Phai goi /orders/1 it nhat 1 lan thi 2 tab tren moi co du lieu.)
 
 === DEMO CHINH (Nguoi 5) ===
 1. Ca 2 service dang chay:      curl http://localhost:8080/orders/1      -> du lieu that, CLOSED
-2. Tat product-service (Ctrl+C), goi lai 5 lan:
+2. Tat product-service, goi lai 5 lan:
+                                sudo docker compose stop product-service
                                 curl http://localhost:8080/orders/1      -> fallback (RetryableException)
 3. Goi tiep:                    curl http://localhost:8080/orders/1      -> fallback (CallNotPermittedException), OPEN
-4. Bat lai product-service, cho hon 10 giay, goi 2 lan:
-                                curl http://localhost:8080/orders/1      -> HALF_OPEN -> CLOSED
+4. Bat lai product-service:
+                                sudo docker compose start product-service
+   Cho product khoi dong xong (vai giay) va qua 10 giay ke tu luc OPEN, kiem tra goi thang product (khong qua circuit breaker):
+                                curl http://localhost:8081/products/1    -> co du lieu la OK
+   Chua co du lieu thi cho them roi goi lai. KHONG goi /orders/1 luc nay, vi neu product chua len thi mach se quay lai OPEN.
+5. Goi dung 3 lan:              curl http://localhost:8080/orders/1      -> HALF_OPEN
+                                curl http://localhost:8080/orders/1
+                                curl http://localhost:8080/orders/1      -> CLOSED (nhin tab 1)
 
-=== DEMO 2 LOI (Nguoi 6) - tat product-service truoc ===
-curl http://localhost:8080/orders/1                 -> fallback (dung)
-curl http://localhost:8080/orders/1/noi-bo          -> loi 500, actuator khong dem them
-curl http://localhost:8080/orders/1/fallback-sai    -> loi 500, xem canh bao trong log order-service
+--- D. KHI CAN ---
+Demo lai tu dau (dua mach ve CLOSED):   sudo docker compose restart order-service
+Xem log:                                sudo docker compose logs -f
+Chi dung (giu lai container):           sudo docker compose stop
+Dung va xoa 2 container + mang:         sudo docker compose down
+Xoa luon image da build:                sudo docker compose down --rmi local
+Dung + xoa TAT CA container tren may (ke ca container ngoai project nay):
+                                        sudo docker rm -f $(sudo docker ps -aq)
+Kiem tra da sach chua:                  sudo docker ps -a
+
+--- E. LOI THUONG GAP ---
+"Cannot connect to the Docker daemon"   -> sudo service docker start
+"COPY failed: file not found" (target)  -> chua build jar, chay lai buoc B3
+Sua code roi ma chay ra ket qua cu      -> build lai jar (B3) roi sudo docker compose up --build -d
