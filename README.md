@@ -14,6 +14,10 @@ Client ──► order-service (8080) ─── HTTP / JSON qua OpenFeign ──
 
 Để tạo lỗi, ta **tắt product-service** rồi quan sát circuit breaker chuyển trạng thái **CLOSED → OPEN → HALF_OPEN → CLOSED**.
 
+### Mô phỏng tương tác
+
+Mở trực tiếp [`simulation/index.html`](simulation/index.html) trong trình duyệt để thử vòng đời Circuit Breaker: CLOSED → OPEN → HALF_OPEN → CLOSED. Giữ các file JavaScript cùng thư mục `simulation`. Trang chạy độc lập, không cần khởi động service và không phản ánh trạng thái backend thực tế.
+
 ---
 
 ## Mục lục
@@ -122,8 +126,6 @@ curl http://localhost:8080/orders/1
 |---|---|
 | `GET http://localhost:8081/products/{id}` | product-service: thông tin sản phẩm |
 | `GET http://localhost:8080/orders/{id}` | order-service: gọi product qua circuit breaker (demo chính) |
-| `GET http://localhost:8080/orders/{id}/noi-bo` | Demo lỗi 1: gọi nội bộ trong class |
-| `GET http://localhost:8080/orders/{id}/fallback-sai` | Demo lỗi 2: fallback sai chữ ký |
 | `GET http://localhost:8080/actuator/circuitbreakers` | Trạng thái và chỉ số của các mạch |
 | `GET http://localhost:8080/actuator/circuitbreakerevents` | Lịch sử sự kiện (các lần lỗi, chuyển trạng thái) |
 | `GET http://localhost:8080/actuator/health` | Health check, có mục `circuitBreakers` |
@@ -183,7 +185,7 @@ Trong `order-service/src/main/resources/application.properties`. Ngoài các thu
 | `minimum-number-of-calls` | 5 | 100 | Cần ít nhất 5 lần gọi mới tính tỉ lệ lỗi |
 | `failure-rate-threshold` | 50 | 50 | Tỉ lệ lỗi ≥ 50% thì mở mạch |
 | `wait-duration-in-open-state` | 10s | 60s | Thời gian ở OPEN trước khi cho gọi thử |
-| `permitted-number-of-calls-in-half-open-state` | 2 | 10 | Số lần gọi thử ở HALF_OPEN |
+| `permitted-number-of-calls-in-half-open-state` | 3 | 10 | Số lần gọi thử ở HALF_OPEN |
 
 Các giá trị được hạ thấp để thấy mạch chuyển trạng thái nhanh khi demo. Tên `productService` trong các thuộc tính phải khớp với `@CircuitBreaker(name = "productService")`.
 
@@ -198,24 +200,9 @@ Nên mở song song 2 tab: một tab gọi `/orders/1`, một tab xem `/actuator
 | 1 | Bật cả 2 service, gọi `/orders/1` | Dữ liệu sản phẩm thật | CLOSED |
 | 2 | Tắt product-service (Ctrl + C), gọi `/orders/1` vài lần | Thông báo fallback kèm `RetryableException` (Feign không kết nối được) | CLOSED, số lỗi tăng dần |
 | 3 | Gọi tiếp đến khi đủ 5 lần lỗi | Fallback kèm `CallNotPermittedException`: order-service không còn gọi sang product | OPEN |
-| 4 | Bật lại product-service, chờ hơn 10 giây, gọi `/orders/1` 2 lần | Dữ liệu thật trả về như ban đầu | HALF_OPEN → CLOSED |
+| 4 | Bật lại product-service, chờ hơn 10 giây, gọi `/orders/1` 3 lần | Dữ liệu thật trả về như ban đầu | HALF_OPEN → CLOSED |
 
 Tên exception trong thông báo fallback đổi từ `RetryableException` (lỗi kết nối) sang `CallNotPermittedException` (mạch đã mở, không gọi mạng nữa). Đó là bằng chứng mạch đã mở.
-
-### 7.2 Demo 2 lỗi thường gặp
-
-Bắt đầu khi mạch `productService` đã về CLOSED. Tắt lại product-service, sau đó:
-
-| Bước | Gọi | Kết quả | Giải thích |
-|---|---|---|---|
-| 1 | `/orders/1` | Thông báo fallback | Hành vi đúng, để so sánh |
-| 2 | `/orders/1/noi-bo` | **Lỗi 500**; số lần gọi của `productService` trên actuator **không tăng** | `getProductNoiBo()` gọi `this.getProduct()`: lời gọi không đi qua proxy nên `@CircuitBreaker` bị bỏ qua |
-| 3 | `/orders/1/fallback-sai` | **Lỗi 500**; log của order-service có cảnh báo không tìm thấy fallback method | `fallbackSai(String id, ...)` không khớp với hàm gốc nhận `Long id` |
-
-Cách sửa:
-
-- **Lỗi 1:** gọi hàm có `@CircuitBreaker` từ một bean khác (như `OrderController` gọi `ProductClient`).
-- **Lỗi 2:** fallback phải cùng kiểu trả về, cùng tham số với hàm gốc, thêm `Throwable` ở cuối.
 
 ### Reset để demo lại
 

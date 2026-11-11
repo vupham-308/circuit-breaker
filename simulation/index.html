@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Phòng thí nghiệm Circuit Breaker</title>
+  <style>
+    :root{color-scheme:dark;--bg:#111815;--panel:#1b2420;--line:#35463b;--ink:#e9eee5;--muted:#9daea1;--mint:#c9e99c;--amber:#edc880;--red:#e59e8d}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+    button{font:inherit;cursor:pointer}button:hover{filter:brightness(1.12)}button:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+    main{max-width:1220px;margin:auto;padding:32px 28px 70px}header{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding-bottom:24px}
+    .brand,.eyebrow,.tiny{font:700 11px/1.4 ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase}.brand{color:var(--mint)}.tag{color:var(--muted);font-size:12px}
+    h1{font-size:clamp(32px,5vw,58px);letter-spacing:-.055em;line-height:1.05;margin:44px 0 12px}h1 span{color:var(--mint)}.intro{max-width:710px;color:var(--muted);margin:0 0 28px}
+    .layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr);gap:16px}.card{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+    .figure{background:radial-gradient(ellipse at 50% 60%,#29382c,#18211d 66%);min-height:420px;display:flex;flex-direction:column}.figure svg{width:100%;height:auto;max-height:400px;flex:1;min-height:230px}
+    .cardhead,.cardfoot{display:flex;justify-content:space-between;gap:12px;padding:18px 22px;color:var(--muted)}.cardhead strong,.cardfoot strong{color:var(--ink)}.cardfoot{border-top:1px solid var(--line);margin-top:auto}.status{color:var(--mint)!important}
+    .panel{padding:22px}.panel h2{font-size:20px;margin:0 0 6px}.panel p{color:var(--muted);margin:0 0 18px}.control{border-top:1px solid var(--line);padding:17px 0}
+    .control-label{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;font-size:13px}.switch{border:1px solid #57725c;background:#263c2c;color:var(--mint);padding:8px 12px;border-radius:6px}.switch.off{color:var(--red);background:#3d2927;border-color:#754b42}
+    .primary{width:100%;border:0;background:var(--mint);color:#172018;font-weight:700;border-radius:7px;padding:13px}.secondary{width:100%;margin-top:8px;border:1px solid var(--line);background:#202c25;color:var(--ink);border-radius:7px;padding:10px 15px}
+    .readouts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.readout{border:1px solid var(--line);border-radius:7px;padding:10px 8px}.readout small{display:block;font-size:11px;color:var(--muted)}.readout strong{font:700 16px ui-monospace,monospace}
+    .window{display:flex;gap:7px;margin-top:12px}.slot{height:24px;flex:1;border:1px solid #54685a;border-radius:4px;background:#26322a}.slot.ok{background:var(--mint)}.slot.fail{background:var(--red)}
+    .result{border-left:2px solid var(--mint);background:#202e24;padding:12px 14px;min-height:74px;margin-top:14px;font-size:13px}.result code{color:var(--mint);word-break:break-word}
+    .notes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}.note{padding:20px}.note h3{font-size:14px;margin:0 0 7px}.note p{color:var(--muted);font-size:13px;margin:0}
+    .legend{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:14px 3px}.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mint);margin-right:6px}.legend i.bad{background:var(--red)}
+    .machine-outcome{margin:0 18px 18px;padding:15px 16px;border:1px solid var(--line);border-radius:8px;background:#14251b}.machine-outcome strong{display:block;font-size:17px;line-height:1.4}.machine-outcome>div{margin-top:8px;font-size:13px;color:var(--muted)}.machine-facts{display:flex;gap:7px;flex-wrap:wrap}.machine-facts span{padding:5px 8px;border-radius:4px;background:#25372a;color:var(--ink);font-size:12px}
+    @media(max-width:800px){main{padding:22px 16px 50px}.layout,.notes{grid-template-columns:1fr}.cardhead,.cardfoot{padding:14px}.tag{display:none}h1{margin-top:30px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+  </style>
+</head>
+<body>
+<main>
+  <header><div class="brand">◈ &nbsp; Resilience Lab / CircuitBreaker</div><div class="tag">MÔ PHỎNG ĐỘC LẬP · KHÔNG GỌI BACKEND</div></header>
+  <h1>Circuit breaker<span>.</span><br>Nhìn thấy cách mạch bảo vệ.</h1>
+  <p class="intro">Gửi request, tắt product-service và quan sát mạch ngừng gọi khi lỗi tăng cao. Bật lại service để thử phục hồi qua HALF_OPEN.</p>
+  <div class="layout">
+    <section class="card figure" aria-label="Máy phân loại request">
+      <div class="cardhead"><span class="eyebrow">Fig. 01 / Đường đi request</span><strong>Máy phân loại request</strong></div>
+      <div class="cardfoot"><span>Kiện hàng = request · ray chọn đường tới product hoặc fallback</span><strong class="status" id="state">CLOSED</strong></div>
+    </section>
+    <section class="card panel">
+      <h2>Điều khiển thí nghiệm</h2>
+      <p>Client gọi /orders/1. Mạch ở order-service quyết định có cho gọi sang product-service hay không.</p>
+      <div class="control">
+        <div class="control-label"><span>Product-service</span><button class="switch" id="service" type="button" aria-pressed="true">● Đang chạy</button></div>
+        <button class="primary" id="send" type="button">Gửi request /orders/1 →</button>
+        <button class="secondary" id="reset" type="button">Đặt lại thí nghiệm</button>
+      </div>
+      <div class="control">
+        <div class="readouts">
+          <div class="readout"><small>Trong cửa sổ</small><strong id="count">0 / 5</strong></div>
+          <div class="readout"><small>Tỉ lệ lỗi</small><strong id="rate">—</strong></div>
+          <div class="readout"><small>Thử HALF_OPEN</small><strong id="trials">—</strong></div>
+        </div>
+        <div class="window" id="window" aria-label="Năm lời gọi gần nhất"></div>
+        <div class="tiny" style="color:var(--muted);margin-top:9px">Cũ nhất → mới nhất</div>
+      </div>
+      <div id="result" class="result" role="status">Sẵn sàng. Gửi request đầu tiên để bắt đầu.</div>
+    </section>
+  </div>
+  <div class="legend"><span><i></i> Thành công</span><span><i class="bad"></i> Thất bại</span><span>Vệt màu = đường đi lời gọi gần nhất · ray = hướng cho lời gọi tiếp theo</span><span>Ba ô dưới nhãn trạng thái = kết quả thử HALF_OPEN</span><span>Máng dưới = fallback · chỉ là mô phỏng, không đọc actuator</span></div>
+  <section class="notes">
+    <article class="card note"><h3>CLOSED · theo dõi lời gọi</h3><p>Xét 5 lời gọi gần nhất; sau tối thiểu 5 lời gọi, tỉ lệ lỗi ≥ 50% thì mở mạch.</p></article>
+    <article class="card note"><h3>OPEN · ngắt để bảo vệ</h3><p>Không gọi sang product-service. Sau 10 giây, request tiếp theo chuyển mạch sang HALF_OPEN.</p></article>
+    <article class="card note"><h3>HALF_OPEN · thử phục hồi</h3><p>Đánh giá 3 lời gọi thử: tỉ lệ lỗi dưới 50% thì đóng mạch; từ 50% trở lên thì mở lại.</p></article>
+  </section>
+</main>
+<script src="machine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
