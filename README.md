@@ -14,10 +14,6 @@ Client ──► order-service (8080) ─── HTTP / JSON qua OpenFeign ──
 
 Để tạo lỗi, ta **tắt product-service** rồi quan sát circuit breaker chuyển trạng thái **CLOSED → OPEN → HALF_OPEN → CLOSED**.
 
-### Mô phỏng tương tác
-
-Mở trực tiếp [`simulation/index.html`](simulation/index.html) trong trình duyệt để thử vòng đời Circuit Breaker: CLOSED → OPEN → HALF_OPEN → CLOSED. Giữ các file JavaScript cùng thư mục `simulation`. Trang chạy độc lập, không cần khởi động service và không phản ánh trạng thái backend thực tế.
-
 ---
 
 ## Mục lục
