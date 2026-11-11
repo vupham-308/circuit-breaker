@@ -29,22 +29,4 @@ public class ProductClient {
                 + ex.getClass().getSimpleName() + ")";
     }
 
-    // ===== Demo lỗi 1: gọi nội bộ qua "this", @CircuitBreaker bị bỏ qua =====
-    // Lời gọi this.getProduct() đi thẳng bên trong đối tượng, không qua proxy của Spring,
-    // nên circuit breaker không chạy và fallback không được gọi.
-    public String getProductNoiBo(Long id) {
-        return this.getProduct(id);
-    }
-
-    // ===== Demo lỗi 2: fallback sai chữ ký (String thay vì Long) =====
-    // Resilience4j không tìm thấy fallback khớp, ghi cảnh báo vào log và ném exception gốc.
-    // Instance "demoLoi" không khai báo trong application.properties nên dùng cấu hình mặc định.
-    @CircuitBreaker(name = "demoLoi", fallbackMethod = "fallbackSai")
-    public String getProductFallbackSai(Long id) {
-        return productFeignClient.getProduct(id);
-    }
-
-    private String fallbackSai(String id, Throwable ex) {
-        return "Sẽ không bao giờ chạy tới đây";
-    }
 }

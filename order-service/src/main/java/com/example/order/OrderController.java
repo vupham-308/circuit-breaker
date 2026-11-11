@@ -21,15 +21,4 @@ public class OrderController {
         return Map.of("orderId", id, "product", productClient.getProduct(id));
     }
 
-    // Demo lỗi 1: gọi nội bộ trong class
-    @GetMapping("/orders/{id}/noi-bo")
-    public Map<String, Object> noiBo(@PathVariable Long id) {
-        return Map.of("orderId", id, "product", productClient.getProductNoiBo(id));
-    }
-
-    // Demo lỗi 2: fallback sai chữ ký
-    @GetMapping("/orders/{id}/fallback-sai")
-    public Map<String, Object> fallbackSai(@PathVariable Long id) {
-        return Map.of("orderId", id, "product", productClient.getProductFallbackSai(id));
-    }
 }
